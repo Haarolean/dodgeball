@@ -228,7 +228,7 @@ public void OnMapStart()
 		LogMessage("[DB] Dodgeball map detected. Enabling Dodgeball Gamemode.");
 		g_isDBmap = true;
 		g_reloadConfig = false;
-		Steam_SetGameDescription("Dodgeball Redux");
+		//Steam_SetGameDescription("Dodgeball Redux");
 		AddServerTag("dodgeball");
 		
 		LoadRocketClasses();
@@ -1413,7 +1413,7 @@ public void Start1V1Mode()
 	{
 		if(IsValidClient(i))
 		{
-			ShowSyncHudText(i, g_HudSyncs[MAXMULTICOLORHUD], "Battle between %N vs %N starts in 10 seconds!",GetLastPlayer(TEAM_RED),GetLastPlayer(TEAM_BLUE));
+			ShowSyncHudText(i, g_HudSyncs[MAXMULTICOLORHUD], "Дуэль между %N и %N начнется через 10 секунд!",GetLastPlayer(TEAM_RED),GetLastPlayer(TEAM_BLUE));
 		}
 	}
 	LivesAnnotation(GetLastPlayer(TEAM_RED),g_1v1_red_life);
