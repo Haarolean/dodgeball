@@ -1408,14 +1408,14 @@ public void Start1V1Mode()
 	g_1v1_red_beep = null;
 	g_1v1_blue_beep =  null;
 	
-	SetHudTextParams(-1.0, 0.40,7.0,0,255,255,255, 1, 3.0, 1.5, 1.5);
+	/*SetHudTextParams(-1.0, 0.40,7.0,0,255,255,255, 1, 3.0, 1.5, 1.5);
 	for(int i = 1; i <= MaxClients; i++)
 	{
 		if(IsValidClient(i))
 		{
 			ShowSyncHudText(i, g_HudSyncs[MAXMULTICOLORHUD], "Дуэль между %N и %N начнется через 10 секунд!",GetLastPlayer(TEAM_RED),GetLastPlayer(TEAM_BLUE));
 		}
-	}
+	}*/
 	LivesAnnotation(GetLastPlayer(TEAM_RED),g_1v1_red_life);
 	LivesAnnotation(GetLastPlayer(TEAM_BLUE),g_1v1_blue_life);
 	for(int i = 0; i < g_max_rockets; i++)
@@ -1436,7 +1436,7 @@ public void Start1V1Mode()
 		}
 	}
 	g_canSpawn = false;
-	CreateTimer(10.0,AllowSpawn);
+	CreateTimer(g_spawn_delay,AllowSpawn); //CreateTimer(10.0,AllowSpawn);
 }
 
 public OnClientPutInServer(client)
