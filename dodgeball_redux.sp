@@ -208,6 +208,7 @@ public void OnPluginStart()
 	HookEvent("player_death", OnPlayerDeath, EventHookMode_Post);
 	HookEvent("teamplay_round_win", OnRoundEnd);
 	HookEvent("teamplay_round_stalemate", OnRoundEnd);
+	HookEvent("teamplay_broadcast_audio", OnBroadcastAudio, EventHookMode_Pre);
 	
 	//Constant file paths
 	BuildPath(Path_SM, g_mainfile, PLATFORM_MAX_PATH, "configs/dodgeball_redux/dodgeball.cfg");
@@ -1145,6 +1146,64 @@ public Action OnRoundEnd(Handle event, const char[] name, bool dontBroadcast)
 	
 }
 
+/* OnBroadcastAudio()
+**
+** Replaces the broadcasted audio for our custom music files.
+** -------------------------------------------------------------------------- */
+public Action:OnBroadcastAudio(Handle:hEvent, String:strEventName[], bool:bDontBroadcast)
+{
+    /*if (g_bMusicEnabled == true) //!!!
+    {
+        decl String:strSound[PLATFORM_MAX_PATH];
+        GetEventString(hEvent, "sound", strSound, sizeof(strSound));
+        new iTeam = GetEventInt(hEvent, "team");
+        
+        if (StrEqual(strSound, "Announcer.AM_RoundStartRandom") == true)
+        {
+            if (g_bUseWebPlayer == false)
+            {
+                if (g_bMusic[Music_Gameplay])
+                {
+                    EmitSoundToAll(g_strMusic[Music_Gameplay], SOUND_FROM_PLAYER, SNDCHAN_MUSIC);
+                    return Plugin_Handled;
+                }
+            }
+            else
+            {
+                for (new iClient = 1; iClient <= MaxClients; iClient++)
+                    if (IsValidClient(iClient))
+                        ShowHiddenMOTDPanel(iClient, "MusicPlayerStart", g_strWebPlayerUrl);
+                    
+                return Plugin_Handled;
+            }
+        }
+        else if (StrEqual(strSound, "Game.YourTeamWon") == true)
+        {
+            if (g_bMusic[Music_RoundWin])
+            {
+                for (new iClient = 1; iClient <= MaxClients; iClient++)
+                    if (IsValidClient(iClient) && (iTeam == GetClientTeam(iClient)))
+                        EmitSoundToClient(iClient, g_strMusic[Music_RoundWin]);
+                    
+                return Plugin_Handled;
+            }
+        }
+        else if (StrEqual(strSound, "Game.YourTeamLost") == true)
+        {
+            if (g_bMusic[Music_RoundLose])
+            {
+                for (new iClient = 1; iClient <= MaxClients; iClient++)
+                    if (IsValidClient(iClient) && (iTeam == GetClientTeam(iClient)))
+                        EmitSoundToClient(iClient, g_strMusic[Music_RoundLose]);
+                    
+                return Plugin_Handled;
+            }
+            return Plugin_Handled;
+        }
+    }*/
+    return Plugin_Continue;
+}
+
 /* TF2Items_OnGiveNamedItem_Post()
 **
 ** Here we check for the demoshield and the sapper.
@@ -1401,7 +1460,9 @@ public void Start1V1Mode()
 		return;
 	}
 	g_1v1_started = true;
-	g_1v1_music_played = EmitRandomSound(g_1v1_Music,-1);
+	if(GetClientCount() > 2) {
+		g_1v1_music_played = EmitRandomSound(g_1v1_Music,-1);
+	}
 	
 	g_1v1_red_life = g_1v1_lives;
 	g_1v1_blue_life = g_1v1_lives;
