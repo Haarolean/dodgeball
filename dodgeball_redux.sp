@@ -43,6 +43,8 @@
 #define PARTICLE_NUKE_5_ANGLES  PARTICLE_NUKE_1_ANGLES
 #define PARTICLE_NUKE_COLLUMN_ANGLES  PARTICLE_NUKE_1_ANGLES
 
+#define SNDCHAN_MUSIC           32
+
 enum
 {
 	rsnd_spawn,
@@ -116,6 +118,8 @@ StringMap g_SndOnDeath;
 float g_OnKillDelay;
 StringMap g_SndOnKill;
 StringMap g_SndLastAlive;
+StringMap g_SndRoundWin;
+StringMap g_SndRoundLoss;
 
 //Flamethrower restriction
 StringMap g_RestrictedWeps;
@@ -172,6 +176,8 @@ public void OnPluginStart()
 	g_SndOnDeath = CreateTrie();
 	g_SndOnKill = CreateTrie();
 	g_SndLastAlive = CreateTrie();
+	g_SndRoundWin = CreateTrie();
+	g_SndRoundLoss = CreateTrie();
 	g_RestrictedWeps = CreateTrie();
 	g_CommandToBlock = CreateTrie();
 	g_BlockOnlyOnPreparation = CreateTrie();
@@ -518,6 +524,8 @@ void LoadConfigs()
 	g_SndOnDeath.Clear();
 	g_SndOnKill.Clear();
 	g_SndLastAlive.Clear();
+	g_SndRoundWin.Clear();
+	g_SndRoundLoss.Clear();
 	g_RestrictedWeps.Clear();
 	g_CommandToBlock.Clear();
 	g_BlockOnlyOnPreparation.Clear();
@@ -669,6 +677,34 @@ void LoadConfigs()
 			}
 			kv.GoBack();
 		}
+		if(kv.JumpToKey("RoundWin"))
+		{
+			for(int i=1; i<MAXGENERIC; i++)
+			{
+				IntToString(i, key, sizeof(key));
+				kv.GetString(key, sndFile, sizeof(sndFile),"");
+				if(StrEqual(sndFile, ""))
+				{
+					break;
+				}	
+				g_SndRoundWin.SetString(key,sndFile);
+			}
+			kv.GoBack();
+		}
+		if(kv.JumpToKey("RoundLoss"))
+		{
+			for(int i=1; i<MAXGENERIC; i++)
+			{
+				IntToString(i, key, sizeof(key));
+				kv.GetString(key, sndFile, sizeof(sndFile),"");
+				if(StrEqual(sndFile, ""))
+				{
+					break;
+				}	
+				g_SndRoundLoss.SetString(key,sndFile);
+			}
+			kv.GoBack();
+		}
 		kv.GoBack();		
 	}
 	kv.Rewind();
@@ -766,6 +802,8 @@ public void PrecacheFiles()
 	PrecacheSoundFromTrie(g_SndOnDeath);
 	PrecacheSoundFromTrie(g_SndOnKill);
 	PrecacheSoundFromTrie(g_SndLastAlive);
+	PrecacheSoundFromTrie(g_SndRoundWin);
+	PrecacheSoundFromTrie(g_SndRoundLoss);
 	//1v1 mode
 	if(!StrEqual(g_1v1_beep_snd,""))	
 	{
@@ -1150,57 +1188,24 @@ public Action OnRoundEnd(Handle event, const char[] name, bool dontBroadcast)
 **
 ** Replaces the broadcasted audio for our custom music files.
 ** -------------------------------------------------------------------------- */
-public Action:OnBroadcastAudio(Handle:hEvent, String:strEventName[], bool:bDontBroadcast)
-{
-    /*if (g_bMusicEnabled == true) //!!!
-    {
-        decl String:strSound[PLATFORM_MAX_PATH];
-        GetEventString(hEvent, "sound", strSound, sizeof(strSound));
-        new iTeam = GetEventInt(hEvent, "team");
-        
-        if (StrEqual(strSound, "Announcer.AM_RoundStartRandom") == true)
-        {
-            if (g_bUseWebPlayer == false)
-            {
-                if (g_bMusic[Music_Gameplay])
-                {
-                    EmitSoundToAll(g_strMusic[Music_Gameplay], SOUND_FROM_PLAYER, SNDCHAN_MUSIC);
-                    return Plugin_Handled;
-                }
-            }
-            else
-            {
-                for (new iClient = 1; iClient <= MaxClients; iClient++)
-                    if (IsValidClient(iClient))
-                        ShowHiddenMOTDPanel(iClient, "MusicPlayerStart", g_strWebPlayerUrl);
-                    
-                return Plugin_Handled;
-            }
+public Action:OnBroadcastAudio(Handle:hEvent, String:strEventName[], bool:bDontBroadcast) {
+    decl String:strSound[PLATFORM_MAX_PATH];
+    GetEventString(hEvent, "sound", strSound, sizeof(strSound));
+    new iTeam = GetEventInt(hEvent, "team");
+    if (StrEqual(strSound, "Announcer.AM_RoundStartRandom") == true) {
+        EmitRandomSound(g_SndRoundStart, SOUND_FROM_PLAYER, SNDCHAN_MUSIC);
+        return Plugin_Handled;
+    } else if (StrEqual(strSound, "Game.YourTeamWon") == true) {
+        for (new iClient = 1; iClient <= MaxClients; iClient++)
+	        if (IsValidClient(iClient) && (iTeam == GetClientTeam(iClient)))
+				EmitRandomSound(g_SndRoundWin, iClient);
+        return Plugin_Handled;
+    } else if (StrEqual(strSound, "Game.YourTeamLost") == true) {
+        for (new iClient = 1; iClient <= MaxClients; iClient++)
+            if (IsValidClient(iClient) && (iTeam == GetClientTeam(iClient)))
+                EmitRandomSound(g_SndRoundLoss, iClient);
+        return Plugin_Handled;
         }
-        else if (StrEqual(strSound, "Game.YourTeamWon") == true)
-        {
-            if (g_bMusic[Music_RoundWin])
-            {
-                for (new iClient = 1; iClient <= MaxClients; iClient++)
-                    if (IsValidClient(iClient) && (iTeam == GetClientTeam(iClient)))
-                        EmitSoundToClient(iClient, g_strMusic[Music_RoundWin]);
-                    
-                return Plugin_Handled;
-            }
-        }
-        else if (StrEqual(strSound, "Game.YourTeamLost") == true)
-        {
-            if (g_bMusic[Music_RoundLose])
-            {
-                for (new iClient = 1; iClient <= MaxClients; iClient++)
-                    if (IsValidClient(iClient) && (iTeam == GetClientTeam(iClient)))
-                        EmitSoundToClient(iClient, g_strMusic[Music_RoundLose]);
-                    
-                return Plugin_Handled;
-            }
-            return Plugin_Handled;
-        }
-    }*/
     return Plugin_Continue;
 }
 
@@ -3145,6 +3150,8 @@ public void ResetCvars()
 	g_SndOnDeath.Clear();
 	g_SndOnKill.Clear();
 	g_SndLastAlive.Clear();
+	g_SndRoundWin.Clear();
+	g_SndRoundLoss.Clear();
 	g_RestrictedWeps.Clear();
 	g_CommandToBlock.Clear();
 	g_BlockOnlyOnPreparation.Clear();
@@ -3251,35 +3258,25 @@ void EmitSoundAllDB(int rocketsnd, int rIndex, bool fromEntity)
 
 /* EmitRandomSound()
 **
-** Emits a random sound from a trie, it will be emitted for everyone is a client isn't passed.
+** Emits a random sound from a trie, it will be emitted for everyone if a client isn't passed.
 ** -------------------------------------------------------------------------- */
-stock int EmitRandomSound(StringMap sndTrie,client = -1)
+stock int EmitRandomSound(StringMap sndTrie,client = -1, entity = SOUND_FROM_PLAYER, channel = SNDCHAN_AUTO)
 {
 	int trieSize = sndTrie.Size;
 	char key[4], sndFile[PLATFORM_MAX_PATH];
 	int rndSound = GetRandomInt(1,trieSize);
 	IntToString(rndSound,key,sizeof(key));
 
-	if(GetTrieString(sndTrie,key,sndFile,sizeof(sndFile)))
-	{
-		if(StrEqual(sndFile, ""))
-		{
+	if(GetTrieString(sndTrie,key,sndFile,sizeof(sndFile))) {
+		if(StrEqual(sndFile, "")) {
 			return -1;
 		}
-		if(client != -1)
-		{
-			if(IsValidClient(client))
-			{
-				EmitSoundToClient(client,sndFile,_,_, SNDLEVEL_TRAIN);
-			}
-			else
-			{
+		if(client != -1) {
+			if(!IsValidClient(client)) 
 				return -1;
-			}
-		}
-		else
-		{
-			EmitSoundToAll(sndFile, _, _, SNDLEVEL_TRAIN);
+			EmitSoundToClient(client,sndFile, entity, channel);
+		} else {
+            EmitSoundToAll(sndFile,entity,channel);
 		}
 	}
 	return rndSound;
