@@ -3096,7 +3096,7 @@ void GetHudString(char[] strHud, int length, int rIndex, bool twoLines)
 
 bool useMultiColor()
 {
-	if(/*g_max_rockets > 1*/ && g_max_rockets <= MAXMULTICOLORHUD && g_allow_multirocketcolor)
+	if(/*g_max_rockets > 1 &&*/ g_max_rockets <= MAXMULTICOLORHUD && g_allow_multirocketcolor)
 	{
 		return true;
 	}
