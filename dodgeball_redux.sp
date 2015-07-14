@@ -1164,7 +1164,7 @@ public Action OnRoundEnd(Handle event, const char[] name, bool dontBroadcast)
 					{
 						if(IsValidClient(i))
 						{
-							StopSound(i, SNDCHAN_AUTO, sndFile);
+							StopSound(i, SNDCHAN_AUTO, sndFile); //CHECK AND FIX
 						}
 					}
 				}
@@ -2994,16 +2994,13 @@ public void ClearHud()
 ** -------------------------------------------------------------------------- */
 public void RenderHud()
 {
-	if(!g_hud_show)
-	{
-		return;
-	}
+	if(!g_hud_show) return;
 	//Multi Color hud
 	if(useMultiColor())
 	{
 		int ncolor[3];
 		char strHud[PLATFORM_MAX_PATH];
-		for( int c = 0; c < g_max_rockets_dynamic; c++)
+		for( int c = 0; c < g_max_rockets_dynamic; c++) //HUD
 		{
 			GetIntColor(g_mrc_color[c],ncolor);
 			SetHudTextParams(g_hud_x,g_hud_y+ c*2*HUD_LINE_SEPARATION,30.0,ncolor[0],ncolor[1],ncolor[2],255, 0, 0.0, 0.0, 0.0);
@@ -3099,7 +3096,7 @@ void GetHudString(char[] strHud, int length, int rIndex, bool twoLines)
 
 bool useMultiColor()
 {
-	if(g_max_rockets > 1 && g_max_rockets <= MAXMULTICOLORHUD && g_allow_multirocketcolor)
+	if(/*g_max_rockets > 1*/ && g_max_rockets <= MAXMULTICOLORHUD && g_allow_multirocketcolor)
 	{
 		return true;
 	}
@@ -3280,6 +3277,18 @@ stock int EmitRandomSound(StringMap sndTrie,client = -1, entity = SOUND_FROM_PLA
 		}
 	}
 	return rndSound;
+}
+
+/* StopSoundToAll()
+**
+** Stops a sound for all the clients on the given channel.
+** -------------------------------------------------------------------------- */
+stock StopSoundToAll(iChannel, const String:strSound[])
+{
+    for (new iClient = 1; iClient <= MaxClients; iClient++)
+    {
+        if (IsValidClient(iClient)) StopSound(iClient, iChannel, strSound);
+    }
 }
 
 /* GetSndString()
