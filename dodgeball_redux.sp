@@ -12,6 +12,7 @@
 
 //I use this so the compiler will warn about the old syntax
 //#pragma newdecls required
+#pragma tabsize 0
 
 #include <dodgeball>
 
@@ -148,6 +149,9 @@ int db_airdash_def = 1;
 int db_push_def = 1;
 int db_burstammo_def = 1;
 
+//Zeluboba
+int messagePriority = 1000;
+
 // ---- Plugin's Information ---------------------------------------------------
 public Plugin myinfo =
 {
@@ -226,17 +230,12 @@ public void OnPluginStart()
 ** Here we reset every global variable, and we check if the current map is a dodgeball map.
 ** If it is a db map, we get the cvars def. values and the we set up our own values.
 ** -------------------------------------------------------------------------- */
-public void OnMapStart()
-{
+public void OnMapStart() {
 	char mapname[128];
 	GetCurrentMap(mapname, sizeof(mapname));
-	if (strncmp(mapname, "db_", 3, false) == 0 || (strncmp(mapname, "tfdb_", 5, false) == 0) )
-	{
-		LogMessage("[DB] Dodgeball map detected. Enabling Dodgeball Gamemode.");
+	if (strncmp(mapname, "db_", 3, false) == 0 || (strncmp(mapname, "tfdb_", 5, false) == 0) ) {
 		g_isDBmap = true;
 		g_reloadConfig = false;
-		//Steam_SetGameDescription("Dodgeball Redux");
-		AddServerTag("dodgeball");
 		
 		LoadRocketClasses();
 		LoadConfigs();
@@ -244,13 +243,8 @@ public void OnMapStart()
 		PrecacheFiles();
 		ProcessListeners(false);
 		
-	}
- 	else
-	{
-		LogMessage("[DB] Current map is not a Dodgeball map. Disabling Dodgeball Gamemode.");
-		RemoveServerTag("dodgeball");
+	} else {
 		g_isDBmap = false;
-		Steam_SetGameDescription("Team Fortress");	
 	}
 }
 
@@ -1066,7 +1060,9 @@ public Action OnRoundStart(Handle event, const char[] name, bool dontBroadcast)
 		return;
 	}
 	SearchSpawns();
+	messagePriority = 1000;
 	RenderHud();
+	RenderRocketSpeedSign();
 	for(int i = 1; i <= MaxClients; i++)
 	{
 		if(IsValidAliveClient(i))
@@ -1436,12 +1432,13 @@ public Action:OnPlayerDeath(Handle:event, const String:name[], bool:dontBroadcas
 			g_max_rockets_dynamic--;
 			if(g_RocketEnt[g_max_rockets_dynamic].entity != INVALID_ENT_REFERENCE)
 			{
-				CreateTimer(0.1,Timer_MoveRocketSlot,g_max_rockets_dynamic);
+			    CreateTimer(0.1,Timer_MoveRocketSlot,g_max_rockets_dynamic);
 			}			
 			ClearHud();
-		}
-	}
-	 
+        }
+    }
+    RenderHud();
+	RenderRocketSpeedSign("KILL Speed");
 }
 
 public Action ReenableKillSound(Handle timer, int data)
@@ -1671,8 +1668,6 @@ public Action LifeBeep(Handle timer, int data)
 	EmitSoundToClient(client,g_1v1_beep_snd,_,_, SNDLEVEL_TRAIN);
 	return Plugin_Continue;
 }
-
-
 
 /* SearchSpawns()
 **
@@ -2030,7 +2025,7 @@ public int SearchTarget(int rIndex)
 		GetEntPropVector(index, Prop_Send, "m_vecOrigin", rPos);
 		
 		//First player in the list will be the current closest player
-		int closest = possiblePlayers[0];
+		int closest = possiblePlayers[0]; // Zeluboba: last array element for vice-versa TODO
 		GetClientAbsOrigin(closest,aux_pos);
 		float closest_dist = GetVectorDistance(rPos,aux_pos, true);
 		
@@ -2220,6 +2215,7 @@ public void FireRocket()
 		g_lastSpawned = rocketTeam;
 		g_canSpawn = false;
 		RenderHud();
+		RenderRocketSpeedSign();
 		CreateTimer(g_spawn_delay,AllowSpawn);
 		
 	}
@@ -2557,6 +2553,7 @@ public void OnGameFrame()
 			}
 			CreateTimer(g_RocketClass[class].deflectdelay,EnableHoming,i);
 			RenderHud();
+			RenderRocketSpeedSign();
 		}
 		//If isn't a deflect then we have to modify the rocket's direction and velocity
 		else
@@ -2620,6 +2617,8 @@ public void OnGameFrame()
 		}
 		
 	}
+	RenderHud();
+	RenderRocketSpeedSign();
 }
 
 /* EnableHoming()
@@ -2714,6 +2713,7 @@ public OnEntityDestroyed(entity)
 		HideAnnotation(rIndex);
 	}
 	RenderHud();
+	RenderRocketSpeedSign();
 	if(g_roundActive)
 	{
 		CreateTimer(g_spawn_delay, TryFireRocket);
@@ -2988,19 +2988,45 @@ public void ClearHud()
 	}
 }
 
+/* RenderRocketSpeedSign()
+**
+** Kek
+** -------------------------------------------------------------------------- */
+void RenderRocketSpeedSign(String:prefix[] = "Rocket Speed") {
+    if(g_RocketEnt[0].speed <= 0) return;
+	new String:rocketSpeed[32];
+    Format(rocketSpeed,32,"%.1f",g_RocketEnt[0].speed);
+	
+	new String:msg[32];
+	StrCat(msg, 32, prefix);
+	StrCat(msg, 32, ": ");
+	StrCat(msg, 32, rocketSpeed);
+	
+	for(int i = 1; i < MaxClients; i++) {
+		if(!IsValidClient(i)) continue;
+			new Handle:kv = CreateKeyValues("Stuff", "title", msg);
+			//KvSetColor(kv, "color", g_Colors[color][0], g_Colors[color][1], g_Colors[color][2], 255);
+			KvSetNum(kv, "level", messagePriority--);
+			//KvSetNum(kv, "time", 1);
+			CreateDialog(i, kv, DialogType_Msg);
+			CloseHandle(kv);
+		
+	}
+}
+
 /* RenderHud()
 **
 ** This will render the hud for 30 secs (called on start/rocket fired/ rocket deflected and rocket destroyed).
 ** -------------------------------------------------------------------------- */
 public void RenderHud()
 {
-	if(!g_hud_show) return;
+    if(!g_hud_show) return;
 	//Multi Color hud
-	if(useMultiColor())
+    if(useMultiColor())
 	{
 		int ncolor[3];
 		char strHud[PLATFORM_MAX_PATH];
-		for( int c = 0; c < g_max_rockets_dynamic; c++) //HUD
+		for( int c = 0; c < g_max_rockets_dynamic; c++)
 		{
 			GetIntColor(g_mrc_color[c],ncolor);
 			SetHudTextParams(g_hud_x,g_hud_y+ c*2*HUD_LINE_SEPARATION,30.0,ncolor[0],ncolor[1],ncolor[2],255, 0, 0.0, 0.0, 0.0);
