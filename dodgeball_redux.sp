@@ -1438,7 +1438,7 @@ public Action:OnPlayerDeath(Handle:event, const String:name[], bool:dontBroadcas
         }
     }
     RenderHud();
-	RenderRocketSpeedSign("KILL Speed");
+	RenderRocketSpeedSign("Rocket KILL speed");
 }
 
 public Action ReenableKillSound(Handle timer, int data)
@@ -2008,43 +2008,32 @@ public int SearchTarget(int rIndex)
 		}
 	}
 	
-	//Random player
-	if(!g_RocketClass[class].targetclosest)
-	{
-		return possiblePlayers[ GetRandomInt(0,possibleNumber-1)];
-	}
-	
 	//We find the closest player in the valid players vector
-	else
-	{
-		//Some aux variables
-		float aux_dist;
-		float aux_pos[3];
-		//Rocket's position
-		float rPos[3];
-		GetEntPropVector(index, Prop_Send, "m_vecOrigin", rPos);
+	//Some aux variables
+	float aux_dist;
+	float aux_pos[3];
+	//Rocket's position
+	float rPos[3];
+	GetEntPropVector(index, Prop_Send, "m_vecOrigin", rPos);
 		
-		//First player in the list will be the current closest player
-		int closest = possiblePlayers[0]; // Zeluboba: last array element for vice-versa TODO
-		GetClientAbsOrigin(closest,aux_pos);
-		float closest_dist = GetVectorDistance(rPos,aux_pos, true);
-		
-		
-		for(int i = 1; i < possibleNumber; i++)
-		{
-			//We use the squared option for optimization since we don't need the absolute distance.
-			GetClientAbsOrigin(possiblePlayers[i],aux_pos);
-			aux_dist = GetVectorDistance(rPos, aux_pos, true);
-			if(closest_dist > aux_dist)
-			{
-				closest = possiblePlayers[i];
-				closest_dist = aux_dist;
-			}
-		}
-		return closest;
+	int closest = possiblePlayers[possibleNumber - 1]; //distant 
+	if(g_RocketClass[class].targetclosest) {
+		closest = possiblePlayers[0]; //closest
 	}
-	
-
+		
+	GetClientAbsOrigin(closest,aux_pos);
+	float closest_dist = GetVectorDistance(rPos,aux_pos, true);
+		
+	for(int i = 1; i < possibleNumber; i++) {
+		//We use the squared option for optimization since we don't need the absolute distance.
+		GetClientAbsOrigin(possiblePlayers[i],aux_pos);
+		aux_dist = GetVectorDistance(rPos, aux_pos, true);
+		if(closest_dist > aux_dist) {
+			closest = possiblePlayers[i];
+			closest_dist = aux_dist;
+		}
+	}
+	return closest;
 }
 
 /* TryFireRocket()
@@ -2992,7 +2981,7 @@ public void ClearHud()
 **
 ** Kek
 ** -------------------------------------------------------------------------- */
-void RenderRocketSpeedSign(String:prefix[] = "Rocket Speed") {
+void RenderRocketSpeedSign(String:prefix[] = "Rocket speed") {
     if(g_RocketEnt[0].speed <= 0) return;
 	new String:rocketSpeed[32];
     Format(rocketSpeed,32,"%.1f",g_RocketEnt[0].speed);
